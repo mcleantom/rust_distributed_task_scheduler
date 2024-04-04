@@ -1,47 +1,64 @@
-use greeter::greeter_server::{Greeter, GreeterServer};
-use greeter::{HelloRequest, HelloResponse};
-use tonic;
+use coordinator::coordinator_service_server::{CoordinatorService, CoordinatorServiceServer};
+use coordinator::{
+    ClientTaskRequest, ClientTaskResponse, HeartbeatRequest, HeartbeatResponse,
+    UpdateTaskStatusRequest, UpdateTaskStatusResponse,
+};
 use tonic::transport::Server;
+use tonic::{self, Response};
 
-pub mod greeter {
-    tonic::include_proto!("greeter");
+pub mod coordinator {
+    tonic::include_proto!("coordinator");
 
     pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
-        tonic::include_file_descriptor_set!("greeter_descriptor");
+        tonic::include_file_descriptor_set!("coordinator_descriptor");
 }
 
 #[derive(Debug, Default)]
-pub struct MyGreeter {}
+pub struct MyCoordinator {}
 
 #[tonic::async_trait]
-impl Greeter for MyGreeter {
-    async fn say_hello(
+impl CoordinatorService for MyCoordinator {
+    async fn submit_task(
         &self,
-        request: tonic::Request<HelloRequest>,
-    ) -> Result<tonic::Response<HelloResponse>, tonic::Status> {
-        println!("Received request from {:?}", request);
-
-        let response = greeter::HelloResponse {
-            message: format!("Hello {}!", request.into_inner().name).into(),
+        request: tonic::Request<ClientTaskRequest>,
+    ) -> Result<tonic::Response<ClientTaskResponse>, tonic::Status> {
+        let reply = ClientTaskResponse {
+            message: "hi".to_string(),
+            task_id: "hello".to_string(),
         };
+        Ok(Response::new(reply))
+    }
 
-        Ok(tonic::Response::new(response))
+    async fn send_heartbeat(
+        &self,
+        request: tonic::Request<HeartbeatRequest>,
+    ) -> Result<tonic::Response<HeartbeatResponse>, tonic::Status> {
+        let reply = HeartbeatResponse { acknowledged: true };
+        Ok(Response::new(reply))
+    }
+
+    async fn update_task_status(
+        &self,
+        request: tonic::Request<UpdateTaskStatusRequest>,
+    ) -> Result<tonic::Response<UpdateTaskStatusResponse>, tonic::Status> {
+        let reply = UpdateTaskStatusResponse { success: true };
+        Ok(Response::new(reply))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
-    let greeter = MyGreeter::default();
+    let greeter = MyCoordinator::default();
 
     let service = tonic_reflection::server::Builder::configure() // Change this line
-        .register_encoded_file_descriptor_set(greeter::FILE_DESCRIPTOR_SET)
+        .register_encoded_file_descriptor_set(coordinator::FILE_DESCRIPTOR_SET)
         .build()?;
 
     println!("Starting gRPC server...");
     Server::builder()
         .add_service(service)
-        .add_service(GreeterServer::new(greeter))
+        .add_service(CoordinatorServiceServer::new(greeter))
         .serve(addr)
         .await?;
 
