@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "postgres", "macros" ] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full"] }
 futures = "0.3"
 actix-web = "4.0"
 tonic = "0.11"
@@ -20,3 +20,7 @@ tonic-build = "0.11"
 [[bin]]
 name = "coordinator"
 path = "src/coordinator.rs"
+
+[[bin]]
+name = "worker"
+path = "src/worker.rs"
